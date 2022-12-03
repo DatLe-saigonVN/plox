@@ -19,7 +19,7 @@ class Hangar(models.Model):
     available_duration = models.IntegerField(db_column='Available_Duration', blank=True, null=True)  # Field name made lowercase.
     heating = models.CharField(db_column='Heating', blank=True, null=True, max_length=200)  # Field name made lowercase.
     water_and_electricity = models.CharField(db_column='Water_and_Electricity', blank=True, null=True, max_length=200)  # Field name made lowercase.
-    technician = models.CharField(db_column='Technician', blank=True, null=True)  # Field name made lowercase.
+    technician = models.CharField(db_column='Technician', blank=True, null=True, max_length=200)  # Field name made lowercase.
     rented_by = models.ForeignKey('User', models.DO_NOTHING, related_name='rented_by', db_column='Rented_By', blank=True, null=True)  # Field name made lowercase.
     owned_by = models.ForeignKey('User', models.DO_NOTHING, related_name='owned_by', db_column='Owned_By', blank=True, null=True, max_length=200)  # Field name made lowercase.
 
@@ -29,7 +29,7 @@ class Hangar(models.Model):
 
 class Location(models.Model):
     address = models.CharField(db_column='Address', primary_key=True, max_length=200)  # Field name made lowercase.
-    city = models.IntegerField(db_column='City')  # Field name made lowercase.
+    city = models.CharField(db_column='City', unique=True,max_length=200)  # Field name made lowercase.
     zip_code = models.IntegerField(db_column='Zip_Code', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
@@ -57,12 +57,17 @@ class Role(models.Model):
 
 
 class User(models.Model):
-    user = models.OneToOneField('self', models.DO_NOTHING, related_name='user', db_column='User_ID', primary_key=True)  # Field name made lowercase.
+    user_id = models.AutoField( db_column='User_ID', primary_key=True)  # Field name made lowercase.
+    password = models.CharField(max_length=200, blank=False, db_column='Password')
+    email =  models.CharField(max_length=200, blank=False, db_column='email')
     first_name = models.CharField(db_column='First_Name', blank=True, null=True, max_length=200)  # Field name made lowercase.
     last_name = models.CharField(db_column='Last_Name', blank=True, null=True, max_length=200)  # Field name made lowercase.
-    address = models.ForeignKey(Location, models.DO_NOTHING, related_name='address',  db_column='Address', blank=True, null=True)  # Field name made lowercase.
-    city = models.ForeignKey(Location, models.DO_NOTHING, related_name='city',  db_column='City', to_field='city', blank=True, null=True)  # Field name made lowercase.
+    address = models.CharField(db_column='Address', max_length=200)  # Field name made lowercase.
+    city = models.CharField(db_column='City', unique=False, max_length=200)  # Field name made lowercase.
 
     class Meta:
 
         db_table = 'User'
+def save(self, *args, **kwargs):
+        self.user_id = self.user_id + 1
+        super().save(*args, **kwargs)

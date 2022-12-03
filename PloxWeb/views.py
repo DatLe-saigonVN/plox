@@ -1,36 +1,55 @@
-from django.shortcuts import render
 from .models import *
+from django.shortcuts import  render, redirect
+from .forms import SignUpForm
+from django.contrib.auth import login, authenticate
+from django.contrib import messages
+from django.contrib.auth.forms import AuthenticationForm
+
 # Create your views here.
-def user_login(request):
-    if request.session.get('username',None) and request.session.get('type',None)=='customer':
-        return redirect('user_dashboard')
-    if request.session.get('username',None) and request.session.get('type',None)=='manager':
-        return redirect('manager_dashboard')
-    if request.method=="POST":
-        username=request.POST['username']
-        password=request.POST['password']
-        if not len(username):
-            messages.warning(request,"Username field is empty")
-            redirect('user_login')
-        elif not len(password):
-            messages.warning(request,"Password field is empty")
-            redirect('user_login')
-        else:
-            pass
-        if Customer.objects.filter(username=username):
-            user=Customer.objects.filter(username=username)[0]
-            password_hash=user.password
-            res=check_password(password,password_hash)
-            if res==1:
-                request.session['username'] = username
-                request.session['type'] = 'customer'
-                return render(request,'booking/index.html',{})
-            else:
-                messages.warning(request,"Username or password is incorrect")
-                redirect('user_login')
-        else:
-            messages.warning(request,"No, Account exist for the given Username")
-            redirect('user_login')
+def homepage(request):
+    return render(request, 'home.html')
+def update_user_data(user):
+    Location.objects.update_or_create(user=user, defaults={'address': user.location.address, 'city':user.location.city})
+def signup(request):
+    if request.method == 'POST':
+        register_form = SignUpForm(request.POST)
+        if register_form.is_valid():
+            new_article = Article.objects.create(
+                author=User.objects.get(pk=request.user.id),
+                title=form.cleaned_data["title"],
+                message=form.cleaned_data["message"],
+            )
+            new_article.save()
+            user.location.address = form.cleaned_data.get('address')
+            user.location.city = form.cleaned_data.get('city')
+            update_user_data(user)
+            # load the profile instance created by the signal
+            user.save()
+            raw_password = register_form.cleaned_data.get('password')
+
+            # login user after signing up
+            user = authenticate(email=user.email, password=raw_password)
+            login(request, user)
+
+            # redirect user to home page
+            return redirect('home')
     else:
-        redirect('user_login')
-    return render(request,'base.html',{})
+        register_form = SignUpForm()
+    return render(request, 'register.html', {'register_form': register_form})
+def login_request(request):
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.info(request, f"You are now logged in as {username}.")
+                return redirect("home")
+            else:
+                messages.error(request,"Invalid username or password.")
+        else:
+            messages.error(request,"Invalid username or password.")
+    form = AuthenticationForm()
+    return render(request=request, template_name="login.html", context={"login_form":form})
